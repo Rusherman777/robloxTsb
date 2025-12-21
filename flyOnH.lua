@@ -44,7 +44,7 @@ local function startFlying()
 	bodyGyro.CFrame = hrp.CFrame
 	bodyGyro.Parent = hrp
 
-	-- Add "flight" attribute if status exists
+	-- Set flight attribute on
 	local status = character:FindFirstChild("status")
 	if status then
 		status:SetAttribute("flight", "on")
@@ -99,7 +99,7 @@ local function stopFlying()
 	if bodyVelocity then bodyVelocity:Destroy() end
 	if bodyGyro then bodyGyro:Destroy() end
 
-	-- Remove "flight" attribute if status exists
+	-- Remove flight attribute
 	local status = character:FindFirstChild("status")
 	if status then
 		status:SetAttribute("flight", nil)
