@@ -5,79 +5,31 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
-
 local character
 local humanoid
 local hrp
 
--------------------------------------------------
--- GUI (BOTTOM LEFT, CREATED ONLY WHEN NEEDED)
--------------------------------------------------
-local gui = Instance.new("ScreenGui")
-gui.Name = "FlightStatusGui"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
-
-local statusLabel -- created only while flying
-
-local function showStatus()
-	if statusLabel then return end
-
-	statusLabel = Instance.new("TextLabel")
-	statusLabel.Size = UDim2.new(0, 200, 0, 30)
-	statusLabel.Position = UDim2.new(0, 10, 1, -40)
-	statusLabel.BackgroundTransparency = 0.3
-	statusLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-	statusLabel.TextColor3 = Color3.fromRGB(0, 255, 170)
-	statusLabel.Font = Enum.Font.GothamBold
-	statusLabel.TextScaled = true
-	statusLabel.Text = "FLIGHT: ON"
-	statusLabel.Parent = gui
-
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
-	corner.Parent = statusLabel
-end
-
-local function hideStatus()
-	if statusLabel then
-		statusLabel:Destroy()
-		statusLabel = nil
-	end
-end
-
--------------------------------------------------
--- FLIGHT VARS
--------------------------------------------------
+-- flight vars
 local flying = false
 local speed = 200
 local bodyVelocity
 local bodyGyro
 local flyConnection
 
--------------------------------------------------
--- CHARACTER SETUP (RESPAWN SAFE)
--------------------------------------------------
+-- setup character (handles respawn)
 local function setupCharacter(char)
 	character = char
 	humanoid = character:WaitForChild("Humanoid")
 	hrp = character:WaitForChild("HumanoidRootPart")
-
-	humanoid.Died:Connect(function()
-		if flying then
-			stopFlying()
-		end
-	end)
 end
 
--------------------------------------------------
--- START FLYING
--------------------------------------------------
-function startFlying()
+setupCharacter(player.Character or player.CharacterAdded:Wait())
+player.CharacterAdded:Connect(setupCharacter)
+
+-- start flying
+local function startFlying()
 	if flying or not hrp then return end
 	flying = true
-
-	showStatus()
 
 	humanoid.PlatformStand = true
 	humanoid:ChangeState(Enum.HumanoidStateType.Physics)
@@ -126,40 +78,25 @@ function startFlying()
 	end)
 end
 
--------------------------------------------------
--- STOP FLYING
--------------------------------------------------
-function stopFlying()
+-- stop flying
+local function stopFlying()
 	if not flying then return end
 	flying = false
 
-	hideStatus()
-
-	if humanoid then
-		humanoid.PlatformStand = false
-		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-	end
+	humanoid.PlatformStand = false
+	humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
 
 	if flyConnection then
 		flyConnection:Disconnect()
 		flyConnection = nil
 	end
-	if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
-	if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+	if bodyVelocity then bodyVelocity:Destroy() end
+	if bodyGyro then bodyGyro:Destroy() end
 end
 
--------------------------------------------------
--- INIT
--------------------------------------------------
-setupCharacter(player.Character or player.CharacterAdded:Wait())
-player.CharacterAdded:Connect(setupCharacter)
-
--------------------------------------------------
--- TOGGLE WITH H
--------------------------------------------------
+-- toggle flight with H
 UserInputService.InputBegan:Connect(function(input, typing)
 	if typing then return end
-
 	if input.KeyCode == Enum.KeyCode.H then
 		if flying then
 			stopFlying()
