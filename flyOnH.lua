@@ -32,7 +32,7 @@ local function notify(text)
 	StarterGui:SetCore("SendNotification", {
 		Title = "Flight",
 		Text = text,
-		Duration = 3
+		Duration = 0.5
 	})
 end
 
