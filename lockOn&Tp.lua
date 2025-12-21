@@ -97,7 +97,7 @@ UIS.InputBegan:Connect(function(input, typing)
             lockedTarget = nil
         end
 
-    elseif input.KeyCode == Enum.KeyCode.T then
+    elseif input.KeyCode == Enum.KeyCode.R then
         local target = (lockOn and lockedTarget) or getClosestAlivePlayer()
         if target then
             teleportAndFollow(target)
