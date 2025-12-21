@@ -3,6 +3,7 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local character
@@ -26,42 +27,13 @@ end
 setupCharacter(player.Character or player.CharacterAdded:Wait())
 player.CharacterAdded:Connect(setupCharacter)
 
--- GUI notification function
-local function showNotification(text)
-	local playerGui = player:WaitForChild("PlayerGui")
-	
-	-- Create the frame
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(0, 200, 0, 40)
-	frame.Position = UDim2.new(1, -210, 1, -50) -- bottom-right
-	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	frame.BackgroundTransparency = 0.4
-	frame.BorderSizePixel = 0
-	frame.AnchorPoint = Vector2.new(0, 0)
-	frame.Parent = playerGui
-
-	-- Text label
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.Position = UDim2.new(0, 0, 0, 0)
-	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.fromRGB(0, 255, 170)
-	label.Font = Enum.Font.GothamBold
-	label.TextScaled = true
-	label.Text = text
-	label.Parent = frame
-
-	-- Tween to fade out after 2.5 seconds
-	game:GetService("TweenService"):Create(
-		frame,
-		TweenInfo.new(2.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0),
-		{BackgroundTransparency = 1, Position = frame.Position + UDim2.new(0, 0, 0, 20)}
-	):Play()
-
-	-- Remove frame after 3 seconds
-	delay(3, function()
-		if frame then frame:Destroy() end
-	end)
+-- Notification function
+local function notify(text)
+	StarterGui:SetCore("SendNotification", {
+		Title = "Flight",
+		Text = text,
+		Duration = 3
+	})
 end
 
 -- start flying
@@ -82,7 +54,7 @@ local function startFlying()
 	bodyGyro.CFrame = hrp.CFrame
 	bodyGyro.Parent = hrp
 
-	showNotification("Flight ON")
+	notify("Flight ON")
 
 	flyConnection = RunService.RenderStepped:Connect(function()
 		if not flying or not hrp then return end
@@ -133,7 +105,7 @@ local function stopFlying()
 	if bodyVelocity then bodyVelocity:Destroy() end
 	if bodyGyro then bodyGyro:Destroy() end
 
-	showNotification("Flight OFF")
+	notify("Flight OFF")
 end
 
 -- toggle flight with H
