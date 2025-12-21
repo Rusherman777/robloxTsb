@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -9,6 +10,15 @@ local humanoid = character:WaitForChild("Humanoid")
 
 local speedEnabled = false
 local desiredSpeed = 150
+
+-- Notification function
+local function notify(text)
+    StarterGui:SetCore("SendNotification", {
+        Title = "Speed",
+        Text = text,
+        Duration = 0.5
+    })
+end
 
 -- Function to update humanoid on respawn
 local function onCharacterAdded(char)
@@ -27,6 +37,13 @@ local function toggleSpeed()
 	speedEnabled = not speedEnabled
 	if speedEnabled and humanoid then
 		humanoid.WalkSpeed = desiredSpeed
+		notify("Speed ON")
+	else
+		-- Optionally reset to default speed (16)
+		if humanoid then
+			humanoid.WalkSpeed = 16
+		end
+		notify("Speed OFF")
 	end
 end
 
