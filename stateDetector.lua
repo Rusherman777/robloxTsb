@@ -2,9 +2,16 @@
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local liveFolder = workspace:WaitForChild("Live")
+
+-------------------------------------------------
+-- TOGGLE STATE
+-------------------------------------------------
+local enabled = false
+local highlights = {}
 
 -------------------------------------------------
 -- GUI SETUP
@@ -12,6 +19,7 @@ local liveFolder = workspace:WaitForChild("Live")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AccessoryScreenGui"
 screenGui.ResetOnSpawn = false
+screenGui.Enabled = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local function createBox(position)
@@ -69,11 +77,11 @@ local function createBox(position)
 end
 
 -- LEFT (YOU)
-local leftFrame, leftTitle, _, leftList =
+local _, leftTitle, _, leftList =
 	createBox(UDim2.fromScale(0.02, 0.66))
 
 -- RIGHT (CLOSEST)
-local rightFrame, rightTitle, rightSubtitle, rightList =
+local _, rightTitle, rightSubtitle, rightList =
 	createBox(UDim2.fromScale(0.72, 0.66))
 
 -------------------------------------------------
@@ -102,7 +110,7 @@ local function updateAccessories(characterModel, listFrame)
 end
 
 -------------------------------------------------
--- BEAM (LINE) SETUP
+-- BEAM SETUP
 -------------------------------------------------
 local att0 = Instance.new("Attachment")
 local att1 = Instance.new("Attachment")
@@ -115,7 +123,33 @@ beam.Width1 = 0.15
 beam.FaceCamera = true
 beam.Color = ColorSequence.new(Color3.fromRGB(0,255,170))
 beam.Transparency = NumberSequence.new(0.15)
+beam.Enabled = false
 beam.Parent = workspace
+
+-------------------------------------------------
+-- HIGHLIGHT FUNCTIONS (GREEN ESP)
+-------------------------------------------------
+local function addHighlights()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr.Character and not highlights[plr] then
+			local h = Instance.new("Highlight")
+			h.FillColor = Color3.fromRGB(0,255,0)
+			h.OutlineColor = Color3.fromRGB(0,255,0)
+			h.FillTransparency = 0.4
+			h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- THROUGH WALLS
+			h.Adornee = plr.Character
+			h.Parent = plr.Character
+			highlights[plr] = h
+		end
+	end
+end
+
+local function removeHighlights()
+	for _, h in pairs(highlights) do
+		if h then h:Destroy() end
+	end
+	table.clear(highlights)
+end
 
 -------------------------------------------------
 -- CLOSEST PLAYER
@@ -149,6 +183,10 @@ end
 -- MAIN LOOP
 -------------------------------------------------
 RunService.RenderStepped:Connect(function()
+	if not enabled then return end
+
+	addHighlights()
+
 	local myChar = liveFolder:FindFirstChild(player.Name)
 	leftTitle.Text = player.Name.." (You)"
 	updateAccessories(myChar, leftList)
@@ -169,9 +207,23 @@ RunService.RenderStepped:Connect(function()
 			beam.Enabled = true
 		end
 	else
-		rightTitle.Text = "No Player Nearby"
-		rightSubtitle.Text = ""
-		updateAccessories(nil, rightList)
 		beam.Enabled = false
+	end
+end)
+
+-------------------------------------------------
+-- TOGGLE Z
+-------------------------------------------------
+UserInputService.InputBegan:Connect(function(input, typing)
+	if typing then return end
+
+	if input.KeyCode == Enum.KeyCode.Z then
+		enabled = not enabled
+		screenGui.Enabled = enabled
+
+		if not enabled then
+			beam.Enabled = false
+			removeHighlights()
+		end
 	end
 end)
