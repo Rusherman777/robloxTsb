@@ -1,8 +1,8 @@
 -- LocalScript
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
 
 local player = Players.LocalPlayer
 local liveFolder = workspace:WaitForChild("Live")
@@ -77,12 +77,10 @@ local function createBox(position)
 end
 
 -- LEFT (YOU)
-local _, leftTitle, _, leftList =
-	createBox(UDim2.fromScale(0.02, 0.66))
+local _, leftTitle, _, leftList = createBox(UDim2.fromScale(0.02, 0.66))
 
 -- RIGHT (CLOSEST)
-local _, rightTitle, rightSubtitle, rightList =
-	createBox(UDim2.fromScale(0.72, 0.66))
+local _, rightTitle, rightSubtitle, rightList = createBox(UDim2.fromScale(0.72, 0.66))
 
 -------------------------------------------------
 -- ACCESSORY DISPLAY
@@ -212,6 +210,17 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -------------------------------------------------
+-- NOTIFICATION FUNCTION
+-------------------------------------------------
+local function notify(text)
+	game:GetService("StarterGui"):SetCore("SendNotification", {
+		Title = "ESP",
+		Text = text,
+		Duration = 0.5
+	})
+end
+
+-------------------------------------------------
 -- TOGGLE Z
 -------------------------------------------------
 UserInputService.InputBegan:Connect(function(input, typing)
@@ -221,9 +230,12 @@ UserInputService.InputBegan:Connect(function(input, typing)
 		enabled = not enabled
 		screenGui.Enabled = enabled
 
-		if not enabled then
+		if enabled then
+			notify("ESP ON")
+		else
 			beam.Enabled = false
 			removeHighlights()
+			notify("ESP OFF")
 		end
 	end
 end)
