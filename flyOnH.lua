@@ -44,11 +44,8 @@ local function startFlying()
 	bodyGyro.CFrame = hrp.CFrame
 	bodyGyro.Parent = hrp
 
-	-- Set flight attribute on
-	local status = character:FindFirstChild("status")
-	if status then
-		status:SetAttribute("flight", "on")
-	end
+	-- Alert when flight starts
+	warn("Flight ON")
 
 	flyConnection = RunService.RenderStepped:Connect(function()
 		if not flying or not hrp then return end
@@ -99,11 +96,8 @@ local function stopFlying()
 	if bodyVelocity then bodyVelocity:Destroy() end
 	if bodyGyro then bodyGyro:Destroy() end
 
-	-- Remove flight attribute
-	local status = character:FindFirstChild("status")
-	if status then
-		status:SetAttribute("flight", nil)
-	end
+	-- Alert when flight stops
+	warn("Flight OFF")
 end
 
 -- toggle flight with H
