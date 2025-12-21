@@ -12,7 +12,7 @@ local hrp
 
 -- flight vars
 local flying = false
-local speed = 500
+local speed = 200
 local bodyVelocity
 local bodyGyro
 local flyConnection
