@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
@@ -10,11 +11,19 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 local lockOn = false
 local lockedTarget = nil
 
+-- Notification function
+local function notify(text)
+    StarterGui:SetCore("SendNotification", {
+        Title = "Lock-On",
+        Text = text,
+        Duration = 0.5
+    })
+end
+
 -- Update character reference on respawn
 local function onCharacterAdded(char)
     Character = char
 end
-
 Player.CharacterAdded:Connect(onCharacterAdded)
 
 -- Get closest alive player
@@ -52,6 +61,7 @@ RunService.RenderStepped:Connect(function()
             lockedTarget = getClosestAlivePlayer()
             if not lockedTarget then
                 lockOn = false
+                notify("Lock-On OFF")
                 return
             end
         end
@@ -91,10 +101,12 @@ UIS.InputBegan:Connect(function(input, typing)
             if target then
                 lockedTarget = target
                 lockOn = true
+                notify("Lock-On ON")
             end
         else
             lockOn = false
             lockedTarget = nil
+            notify("Lock-On OFF")
         end
 
     elseif input.KeyCode == Enum.KeyCode.R then
