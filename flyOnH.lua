@@ -26,19 +26,6 @@ end
 setupCharacter(player.Character or player.CharacterAdded:Wait())
 player.CharacterAdded:Connect(setupCharacter)
 
--- Helper: get or create 'status' StringValue
-local function getStatusValue()
-	if not character then return nil end
-	local status = character:FindFirstChild("status")
-	if not status then
-		status = Instance.new("StringValue")
-		status.Name = "status"
-		status.Value = "none"
-		status.Parent = character
-	end
-	return status
-end
-
 -- start flying
 local function startFlying()
 	if flying or not hrp then return end
@@ -57,8 +44,8 @@ local function startFlying()
 	bodyGyro.CFrame = hrp.CFrame
 	bodyGyro.Parent = hrp
 
-	-- Set status attribute
-	local status = getStatusValue()
+	-- Add "flight" attribute if status exists
+	local status = character:FindFirstChild("status")
 	if status then
 		status:SetAttribute("flight", "on")
 	end
@@ -112,9 +99,9 @@ local function stopFlying()
 	if bodyVelocity then bodyVelocity:Destroy() end
 	if bodyGyro then bodyGyro:Destroy() end
 
-	-- Remove flight attribute
-	local status = getStatusValue()
-	if status and status:GetAttribute("flight") then
+	-- Remove "flight" attribute if status exists
+	local status = character:FindFirstChild("status")
+	if status then
 		status:SetAttribute("flight", nil)
 	end
 end
