@@ -154,14 +154,14 @@ local function createAnimationButton(plr, animName, animId)
 	-- Click to copy only numeric ID
 	btn.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			local id = animId
-			if id:sub(1,12) == "rbxassetid://" then
-				id = id:sub(13)
+			-- Extract numeric ID
+			local numericId = animId:match("%d+")
+			if numericId then
+				copyToClipboard(numericId)
+				btn.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
+				wait(0.3)
+				btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 			end
-			copyToClipboard(id)
-			btn.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
-			wait(0.3)
-			btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
 		end
 	end)
 
