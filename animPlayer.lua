@@ -4,34 +4,24 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local animator = humanoid:FindFirstChildWhichIsA("Animator") or Instance.new("Animator", humanoid)
+local playerGui = player:WaitForChild("PlayerGui")
 
 -- GUI setup
-local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CleanAnimationPlayerGUI"
+screenGui.Name = "AnimationTrackerGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
--- Main Frame
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 400, 0, 180)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -90)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.Size = UDim2.new(0, 500, 0, 550)
+mainFrame.Position = UDim2.new(0.5, -250, 0.5, -275)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
 
 local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 12)
+mainCorner.CornerRadius = UDim.new(0, 14)
 mainCorner.Parent = mainFrame
-
--- Shadow effect
-local shadow = Instance.new("UIStroke")
-shadow.Color = Color3.fromRGB(50, 50, 50)
-shadow.Thickness = 2
-shadow.Parent = mainFrame
 
 -- Draggable
 local dragging, dragInput, dragStart, startPos
@@ -65,100 +55,164 @@ end)
 
 -- Title
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
+title.Size = UDim2.new(1, 0, 0, 50)
 title.BackgroundTransparency = 1
-title.Text = "Animation Player"
+title.Text = "Animations Tracker"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 22
+title.TextSize = 24
 title.Parent = mainFrame
 
--- Animation ID Input Box
-local animBox = Instance.new("TextBox")
-animBox.Size = UDim2.new(1, -40, 0, 35)
-animBox.Position = UDim2.new(0, 20, 0, 60)
-animBox.PlaceholderText = "Enter Animation ID..."
-animBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-animBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-animBox.Font = Enum.Font.Gotham
-animBox.TextSize = 18
-animBox.Parent = mainFrame
+-- Search box
+local searchBox = Instance.new("TextBox")
+searchBox.Size = UDim2.new(1, -20, 0, 30)
+searchBox.Position = UDim2.new(0, 10, 0, 60)
+searchBox.PlaceholderText = "Search players..."
+searchBox.Text = ""
+searchBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+searchBox.Font = Enum.Font.Gotham
+searchBox.TextSize = 18
+searchBox.Parent = mainFrame
+local searchCorner = Instance.new("UICorner")
+searchCorner.CornerRadius = UDim.new(0, 6)
+searchCorner.Parent = searchBox
 
-local animCorner = Instance.new("UICorner")
-animCorner.CornerRadius = UDim.new(0, 8)
-animCorner.Parent = animBox
+-- Scroll frame
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -20, 1, -110)
+scrollFrame.Position = UDim2.new(0, 10, 0, 100)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.ScrollBarThickness = 8
+scrollFrame.Parent = mainFrame
 
--- Buttons container
-local buttonContainer = Instance.new("Frame")
-buttonContainer.Size = UDim2.new(1, -40, 0, 50)
-buttonContainer.Position = UDim2.new(0, 20, 0, 110)
-buttonContainer.BackgroundTransparency = 1
-buttonContainer.Parent = mainFrame
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiListLayout.Padding = UDim.new(0, 6)
+uiListLayout.Parent = scrollFrame
 
--- Play Button
-local playBtn = Instance.new("TextButton")
-playBtn.Size = UDim2.new(0.45, 0, 1, 0)
-playBtn.Position = UDim2.new(0, 0, 0, 0)
-playBtn.BackgroundColor3 = Color3.fromRGB(70, 170, 255)
-playBtn.Text = "Play"
-playBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-playBtn.Font = Enum.Font.GothamBold
-playBtn.TextSize = 18
-playBtn.Parent = buttonContainer
+-- Table to save detected animations
+local detectedAnimations = {} -- {playerName = {animId = {Name = animName, Button = btn}}}
 
-local playCorner = Instance.new("UICorner")
-playCorner.CornerRadius = UDim.new(0, 8)
-playCorner.Parent = playBtn
-
--- Stop Button
-local stopBtn = Instance.new("TextButton")
-stopBtn.Size = UDim2.new(0.45, 0, 1, 0)
-stopBtn.Position = UDim2.new(0.55, 0, 0, 0)
-stopBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-stopBtn.Text = "Stop"
-stopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-stopBtn.Font = Enum.Font.GothamBold
-stopBtn.TextSize = 18
-stopBtn.Parent = buttonContainer
-
-local stopCorner = Instance.new("UICorner")
-stopCorner.CornerRadius = UDim.new(0, 8)
-stopCorner.Parent = stopBtn
-
--- Hover effects
-for _, btn in pairs({playBtn, stopBtn}) do
-	btn.MouseEnter:Connect(function()
-		TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = btn.BackgroundColor3:lerp(Color3.fromRGB(255, 255, 255), 0.1)}):Play()
-	end)
-	btn.MouseLeave:Connect(function()
-		TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = btn.BackgroundColor3:lerp(Color3.fromRGB(0,0,0),0)}):Play()
+-- Function to copy to clipboard
+local function copyToClipboard(text)
+	pcall(function()
+		setclipboard(text)
 	end)
 end
 
--- Current Animation Track
-local currentTrack
+-- Update ScrollFrame CanvasSize
+local function updateCanvasSize()
+	local layout = scrollFrame:FindFirstChildWhichIsA("UIListLayout")
+	if layout then
+		scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+	end
+end
 
--- Play animation
-playBtn.MouseButton1Click:Connect(function()
-	local animId = animBox.Text
-	if animId ~= "" then
-		if currentTrack then currentTrack:Stop() end
-		local anim = Instance.new("Animation")
-		anim.AnimationId = "rbxassetid://"..animId
-		currentTrack = animator:LoadAnimation(anim)
-		currentTrack:Play()
+-- Function to create animation button with player image
+local function createAnimationButton(plr, animName, animId)
+	detectedAnimations[plr.Name] = detectedAnimations[plr.Name] or {}
+	if detectedAnimations[plr.Name][animId] then return end -- Prevent duplicates per player
+
+	local btn = Instance.new("Frame")
+	btn.Size = UDim2.new(1, 0, 0, 50)
+	btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+	btn.Parent = scrollFrame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = btn
+
+	-- Player image
+	local img = Instance.new("ImageLabel")
+	img.Size = UDim2.new(0, 40, 0, 40)
+	img.Position = UDim2.new(0, 5, 0.5, -20)
+	img.BackgroundTransparency = 1
+	img.Image = Players:GetUserThumbnailAsync(plr.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
+	img.Parent = btn
+
+	-- Animation text
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Size = UDim2.new(1, -55, 1, 0)
+	textLabel.Position = UDim2.new(0, 50, 0, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = animName.." | ID: "..animId
+	textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textLabel.Font = Enum.Font.Gotham
+	textLabel.TextSize = 16
+	textLabel.TextXAlignment = Enum.TextXAlignment.Left
+	textLabel.Parent = btn
+
+	-- Hover effect
+	btn.MouseEnter:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(75, 75, 75)}):Play()
+	end)
+	btn.MouseLeave:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(55, 55, 55)}):Play()
+	end)
+
+	-- Click to copy only numeric ID
+	btn.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			-- Extract numeric ID
+			local numericId = animId:match("%d+")
+			if numericId then
+				copyToClipboard(numericId)
+				btn.BackgroundColor3 = Color3.fromRGB(0, 255, 120)
+				wait(0.3)
+				btn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+			end
+		end
+	end)
+
+	detectedAnimations[plr.Name][animId] = {Name = animName, Button = btn}
+
+	updateCanvasSize() -- Update canvas to allow scrolling
+end
+
+-- Function to scan all players' animations
+local function scanAnimations()
+	for _, plr in pairs(Players:GetPlayers()) do
+		if plr.Character then
+			local humanoid = plr.Character:FindFirstChildWhichIsA("Humanoid")
+			if humanoid then
+				local animator = humanoid:FindFirstChildWhichIsA("Animator")
+				if animator then
+					for _, track in pairs(animator:GetPlayingAnimationTracks()) do
+						local animId = track.Animation.AnimationId
+						local animName = track.Name
+						createAnimationButton(plr, animName, animId)
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Infinite scanning
+spawn(function()
+	while true do
+		scanAnimations()
+		wait(1)
 	end
 end)
 
--- Stop animation
-stopBtn.MouseButton1Click:Connect(function()
-	if currentTrack then
-		currentTrack:Stop()
-		currentTrack = nil
+-- Search function
+searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+	local text = searchBox.Text:lower()
+	for _, plrData in pairs(detectedAnimations) do
+		for _, info in pairs(plrData) do
+			local btn = info.Button
+			if string.find(btn.TextLabel.Text:lower(), text) then
+				btn.Visible = true
+			else
+				btn.Visible = false
+			end
+		end
 	end
 end)
 
--- ESC toggle
+-- ESC to toggle GUI
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.KeyCode == Enum.KeyCode.Escape then
 		screenGui.Enabled = not screenGui.Enabled
