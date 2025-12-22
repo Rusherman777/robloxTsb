@@ -8,7 +8,7 @@ local lp = Players.LocalPlayer
 local flingActive = false
 local flingForce = 1e8 -- massive fling
 
--- Function to fling
+-- Fling loop
 local function flingLoop()
     while true do
         RunService.Heartbeat:Wait()
@@ -25,7 +25,7 @@ local function flingLoop()
     end
 end
 
--- Function to send notification
+-- Notification function
 local function notify(message)
     StarterGui:SetCore("SendNotification", {
         Title = "Fling",
@@ -34,10 +34,10 @@ local function notify(message)
     })
 end
 
--- Toggle fling with ` key
+-- Toggle fling by Backquote key (`) reliably
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
-    if input.KeyCode == Enum.KeyCode.BackQuote then
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Backquote then
         flingActive = not flingActive
         notify(flingActive and "ON" or "OFF")
     end
