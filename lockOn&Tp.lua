@@ -79,7 +79,7 @@ local function teleportAndFollow(target)
     if not targetHRP then return end
 
     local backOffset = targetHRP.CFrame.LookVector * 3
-    local followTime = 1
+    local followTime = 0.5
     local start = tick()
 
     RunService.RenderStepped:Connect(function()
