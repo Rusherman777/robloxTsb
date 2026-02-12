@@ -9,7 +9,7 @@ local character
 local humanoid
 
 local speedEnabled = false
-local desiredSpeed = 100 -- FORCE 100
+local desiredSpeed = 200 -- FORCE 100
 
 local function notify(text)
 	StarterGui:SetCore("SendNotification", {
