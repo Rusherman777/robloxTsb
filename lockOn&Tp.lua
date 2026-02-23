@@ -32,7 +32,7 @@ Player.CharacterAdded:Connect(function(char)
 end)
 
 ----------------------------------------------------
--- TARGET SYSTEM (FULLY FIXED)
+-- TARGET SYSTEM (FINAL NPC + PLAYER SUPPORT)
 ----------------------------------------------------
 
 local function isValidTarget(model)
@@ -44,8 +44,11 @@ local function isValidTarget(model)
     return hum and hrp and hum.Health > 0
 end
 
-local function registerModel(model)
-    if model:IsA("Model") and model:FindFirstChildWhichIsA("Humanoid") then
+local function tryRegisterFromDescendant(desc)
+    local model = desc:FindFirstAncestorOfClass("Model")
+    if not model then return end
+
+    if model:FindFirstChildWhichIsA("Humanoid") then
         potentialTargets[model] = true
     end
 end
@@ -54,42 +57,50 @@ local function unregisterModel(model)
     potentialTargets[model] = nil
 end
 
--- Initial scan (lightweight)
-for _, obj in ipairs(workspace:GetChildren()) do
-    if obj:IsA("Model") then
-        registerModel(obj)
+-- Initial scan (safe one-time)
+for _, desc in ipairs(workspace:GetDescendants()) do
+    if desc:IsA("Humanoid") then
+        local model = desc.Parent
+        if model and model:IsA("Model") then
+            potentialTargets[model] = true
+        end
     end
 end
 
--- Track models entering/leaving workspace
-workspace.ChildAdded:Connect(function(child)
-    task.defer(function()
-        registerModel(child)
-    end)
+-- Track future NPCs anywhere in workspace
+workspace.DescendantAdded:Connect(function(desc)
+    if desc:IsA("Humanoid") then
+        tryRegisterFromDescendant(desc)
+    end
 end)
 
-workspace.ChildRemoved:Connect(function(child)
-    unregisterModel(child)
+workspace.DescendantRemoving:Connect(function(desc)
+    if desc:IsA("Humanoid") then
+        local model = desc.Parent
+        if model then
+            unregisterModel(model)
+        end
+    end
 end)
 
--- Track player respawns (VERY IMPORTANT)
+-- Track player respawns
 Players.PlayerAdded:Connect(function(plr)
     plr.CharacterAdded:Connect(function(char)
-        registerModel(char)
+        potentialTargets[char] = true
     end)
 end)
 
 for _, plr in ipairs(Players:GetPlayers()) do
     if plr.Character then
-        registerModel(plr.Character)
+        potentialTargets[plr.Character] = true
     end
 
     plr.CharacterAdded:Connect(function(char)
-        registerModel(char)
+        potentialTargets[char] = true
     end)
 end
 
--- Get closest cached target
+-- Get closest target
 local function getClosestAliveTarget()
     local myHRP = Character:FindFirstChild("HumanoidRootPart")
     if not myHRP then return nil end
@@ -136,7 +147,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 ----------------------------------------------------
--- TELEPORT + FOLLOW (NO LEAK)
+-- TELEPORT + FOLLOW (NO MEMORY LEAK)
 ----------------------------------------------------
 
 local function teleportAndFollow(target)
