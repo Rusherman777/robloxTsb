@@ -13,7 +13,9 @@ local lockedTarget = nil
 local potentialTargets = {}
 local followConnection = nil
 
+----------------------------------------------------
 -- Notification
+----------------------------------------------------
 local function notify(text)
     StarterGui:SetCore("SendNotification", {
         Title = "Lock-On",
@@ -22,13 +24,15 @@ local function notify(text)
     })
 end
 
--- Update character reference on respawn
+----------------------------------------------------
+-- Character update
+----------------------------------------------------
 Player.CharacterAdded:Connect(function(char)
     Character = char
 end)
 
 ----------------------------------------------------
--- TARGET SYSTEM (ANTI-LAG, CACHED)
+-- TARGET SYSTEM (FULLY FIXED)
 ----------------------------------------------------
 
 local function isValidTarget(model)
@@ -37,44 +41,53 @@ local function isValidTarget(model)
     local hum = model:FindFirstChildWhichIsA("Humanoid")
     local hrp = model:FindFirstChild("HumanoidRootPart")
 
-    if hum and hrp and hum.Health > 0 then
-        return true
-    end
-
-    return false
+    return hum and hrp and hum.Health > 0
 end
 
-local function addTarget(model)
-    if isValidTarget(model) then
+local function registerModel(model)
+    if model:IsA("Model") and model:FindFirstChildWhichIsA("Humanoid") then
         potentialTargets[model] = true
     end
 end
 
-local function removeTarget(model)
+local function unregisterModel(model)
     potentialTargets[model] = nil
 end
 
--- Initial scan (runs once)
-for _, obj in ipairs(workspace:GetDescendants()) do
-    if obj:IsA("Model") and obj:FindFirstChildWhichIsA("Humanoid") then
-        addTarget(obj)
+-- Initial scan (lightweight)
+for _, obj in ipairs(workspace:GetChildren()) do
+    if obj:IsA("Model") then
+        registerModel(obj)
     end
 end
 
--- Track new NPCs / players
-workspace.DescendantAdded:Connect(function(obj)
-    if obj:IsA("Model") then
-        task.defer(function()
-            addTarget(obj)
-        end)
-    end
+-- Track models entering/leaving workspace
+workspace.ChildAdded:Connect(function(child)
+    task.defer(function()
+        registerModel(child)
+    end)
 end)
 
-workspace.DescendantRemoving:Connect(function(obj)
-    if obj:IsA("Model") then
-        removeTarget(obj)
-    end
+workspace.ChildRemoved:Connect(function(child)
+    unregisterModel(child)
 end)
+
+-- Track player respawns (VERY IMPORTANT)
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function(char)
+        registerModel(char)
+    end)
+end)
+
+for _, plr in ipairs(Players:GetPlayers()) do
+    if plr.Character then
+        registerModel(plr.Character)
+    end
+
+    plr.CharacterAdded:Connect(function(char)
+        registerModel(char)
+    end)
+end
 
 -- Get closest cached target
 local function getClosestAliveTarget()
@@ -93,8 +106,6 @@ local function getClosestAliveTarget()
                 shortestDist = dist
                 closest = model
             end
-        else
-            potentialTargets[model] = nil
         end
     end
 
@@ -125,7 +136,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 ----------------------------------------------------
--- TELEPORT + FOLLOW (NO MEMORY LEAK)
+-- TELEPORT + FOLLOW (NO LEAK)
 ----------------------------------------------------
 
 local function teleportAndFollow(target)
@@ -139,7 +150,7 @@ local function teleportAndFollow(target)
     local followTime = 0.5
     local start = tick()
 
-    -- disconnect old connection if exists
+    -- stop old follow
     if followConnection then
         followConnection:Disconnect()
         followConnection = nil
