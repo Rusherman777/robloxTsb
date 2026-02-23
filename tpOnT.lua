@@ -27,7 +27,7 @@ end
 -- Listen for key press
 UserInputService.InputBegan:Connect(function(input, typing)
     if typing then return end
-    if input.KeyCode == Enum.KeyCode.R then
+    if input.KeyCode == Enum.KeyCode.T then
         teleportToMouse()
     end
 end)
