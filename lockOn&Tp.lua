@@ -26,22 +26,27 @@ local function onCharacterAdded(char)
 end
 Player.CharacterAdded:Connect(onCharacterAdded)
 
--- Get closest alive player
-local function getClosestAlivePlayer()
+-- 🔥 NEW: Get closest alive humanoid (players + NPCs)
+local function getClosestAliveTarget()
     local closest = nil
     local shortestDist = math.huge
     local myHRP = Character:FindFirstChild("HumanoidRootPart")
     if not myHRP then return nil end
 
-    for _, other in ipairs(Players:GetPlayers()) do
-        if other ~= Player and other.Character then
-            local hum = other.Character:FindFirstChildWhichIsA("Humanoid")
-            local hrp = other.Character:FindFirstChild("HumanoidRootPart")
+    -- check ALL humanoids in workspace
+    for _, model in ipairs(workspace:GetDescendants()) do
+        if model:IsA("Model") then
+            local hum = model:FindFirstChildWhichIsA("Humanoid")
+            local hrp = model:FindFirstChild("HumanoidRootPart")
+
             if hum and hrp and hum.Health > 0 then
-                local dist = (hrp.Position - myHRP.Position).Magnitude
-                if dist < shortestDist then
-                    closest = other
-                    shortestDist = dist
+                -- skip yourself
+                if model ~= Character then
+                    local dist = (hrp.Position - myHRP.Position).Magnitude
+                    if dist < shortestDist then
+                        closest = model
+                        shortestDist = dist
+                    end
                 end
             end
         end
@@ -54,11 +59,10 @@ end
 RunService.RenderStepped:Connect(function()
     if lockOn then
         if not lockedTarget
-            or not lockedTarget.Character
-            or not lockedTarget.Character:FindFirstChildWhichIsA("Humanoid")
-            or lockedTarget.Character:FindFirstChildWhichIsA("Humanoid").Health <= 0
+            or not lockedTarget:FindFirstChildWhichIsA("Humanoid")
+            or lockedTarget:FindFirstChildWhichIsA("Humanoid").Health <= 0
         then
-            lockedTarget = getClosestAlivePlayer()
+            lockedTarget = getClosestAliveTarget()
             if not lockedTarget then
                 lockOn = false
                 notify("Lock-On OFF")
@@ -66,16 +70,17 @@ RunService.RenderStepped:Connect(function()
             end
         end
 
-        local targetHRP = lockedTarget.Character:FindFirstChild("HumanoidRootPart")
+        local targetHRP = lockedTarget:FindFirstChild("HumanoidRootPart")
         if targetHRP then
-            workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, targetHRP.Position)
+            workspace.CurrentCamera.CFrame =
+                CFrame.new(workspace.CurrentCamera.CFrame.Position, targetHRP.Position)
         end
     end
 end)
 
 -- Teleport behind and follow for 1 second
 local function teleportAndFollow(target)
-    local targetHRP = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+    local targetHRP = target and target:FindFirstChild("HumanoidRootPart")
     if not targetHRP then return end
 
     local backOffset = targetHRP.CFrame.LookVector * 3
@@ -97,7 +102,7 @@ UIS.InputBegan:Connect(function(input, typing)
 
     if input.KeyCode == Enum.KeyCode.X then
         if not lockOn then
-            local target = getClosestAlivePlayer()
+            local target = getClosestAliveTarget()
             if target then
                 lockedTarget = target
                 lockOn = true
@@ -110,7 +115,7 @@ UIS.InputBegan:Connect(function(input, typing)
         end
 
     elseif input.KeyCode == Enum.KeyCode.R then
-        local target = (lockOn and lockedTarget) or getClosestAlivePlayer()
+        local target = (lockOn and lockedTarget) or getClosestAliveTarget()
         if target then
             teleportAndFollow(target)
         end
