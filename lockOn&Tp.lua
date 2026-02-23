@@ -7,11 +7,13 @@ local StarterGui = game:GetService("StarterGui")
 local Player = Players.LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
 
--- Variables for lock-on
+-- Variables
 local lockOn = false
 local lockedTarget = nil
+local potentialTargets = {}
+local followConnection = nil
 
--- Notification function
+-- Notification
 local function notify(text)
     StarterGui:SetCore("SendNotification", {
         Title = "Lock-On",
@@ -21,82 +23,146 @@ local function notify(text)
 end
 
 -- Update character reference on respawn
-local function onCharacterAdded(char)
+Player.CharacterAdded:Connect(function(char)
     Character = char
-end
-Player.CharacterAdded:Connect(onCharacterAdded)
+end)
 
--- 🔥 NEW: Get closest alive humanoid (players + NPCs)
+----------------------------------------------------
+-- TARGET SYSTEM (ANTI-LAG, CACHED)
+----------------------------------------------------
+
+local function isValidTarget(model)
+    if not model or model == Character then return false end
+
+    local hum = model:FindFirstChildWhichIsA("Humanoid")
+    local hrp = model:FindFirstChild("HumanoidRootPart")
+
+    if hum and hrp and hum.Health > 0 then
+        return true
+    end
+
+    return false
+end
+
+local function addTarget(model)
+    if isValidTarget(model) then
+        potentialTargets[model] = true
+    end
+end
+
+local function removeTarget(model)
+    potentialTargets[model] = nil
+end
+
+-- Initial scan (runs once)
+for _, obj in ipairs(workspace:GetDescendants()) do
+    if obj:IsA("Model") and obj:FindFirstChildWhichIsA("Humanoid") then
+        addTarget(obj)
+    end
+end
+
+-- Track new NPCs / players
+workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("Model") then
+        task.defer(function()
+            addTarget(obj)
+        end)
+    end
+end)
+
+workspace.DescendantRemoving:Connect(function(obj)
+    if obj:IsA("Model") then
+        removeTarget(obj)
+    end
+end)
+
+-- Get closest cached target
 local function getClosestAliveTarget()
-    local closest = nil
-    local shortestDist = math.huge
     local myHRP = Character:FindFirstChild("HumanoidRootPart")
     if not myHRP then return nil end
 
-    -- check ALL humanoids in workspace
-    for _, model in ipairs(workspace:GetDescendants()) do
-        if model:IsA("Model") then
-            local hum = model:FindFirstChildWhichIsA("Humanoid")
-            local hrp = model:FindFirstChild("HumanoidRootPart")
+    local closest = nil
+    local shortestDist = math.huge
 
-            if hum and hrp and hum.Health > 0 then
-                -- skip yourself
-                if model ~= Character then
-                    local dist = (hrp.Position - myHRP.Position).Magnitude
-                    if dist < shortestDist then
-                        closest = model
-                        shortestDist = dist
-                    end
-                end
+    for model in pairs(potentialTargets) do
+        if isValidTarget(model) then
+            local hrp = model:FindFirstChild("HumanoidRootPart")
+            local dist = (hrp.Position - myHRP.Position).Magnitude
+
+            if dist < shortestDist then
+                shortestDist = dist
+                closest = model
             end
+        else
+            potentialTargets[model] = nil
         end
     end
 
     return closest
 end
 
--- Update camera when locked-on
-RunService.RenderStepped:Connect(function()
-    if lockOn then
-        if not lockedTarget
-            or not lockedTarget:FindFirstChildWhichIsA("Humanoid")
-            or lockedTarget:FindFirstChildWhichIsA("Humanoid").Health <= 0
-        then
-            lockedTarget = getClosestAliveTarget()
-            if not lockedTarget then
-                lockOn = false
-                notify("Lock-On OFF")
-                return
-            end
-        end
+----------------------------------------------------
+-- LOCK-ON CAMERA
+----------------------------------------------------
 
-        local targetHRP = lockedTarget:FindFirstChild("HumanoidRootPart")
-        if targetHRP then
-            workspace.CurrentCamera.CFrame =
-                CFrame.new(workspace.CurrentCamera.CFrame.Position, targetHRP.Position)
+RunService.RenderStepped:Connect(function()
+    if not lockOn then return end
+
+    if not isValidTarget(lockedTarget) then
+        lockedTarget = getClosestAliveTarget()
+        if not lockedTarget then
+            lockOn = false
+            notify("Lock-On OFF")
+            return
         end
+    end
+
+    local targetHRP = lockedTarget:FindFirstChild("HumanoidRootPart")
+    if targetHRP then
+        workspace.CurrentCamera.CFrame =
+            CFrame.new(workspace.CurrentCamera.CFrame.Position, targetHRP.Position)
     end
 end)
 
--- Teleport behind and follow for 1 second
+----------------------------------------------------
+-- TELEPORT + FOLLOW (NO MEMORY LEAK)
+----------------------------------------------------
+
 local function teleportAndFollow(target)
-    local targetHRP = target and target:FindFirstChild("HumanoidRootPart")
-    if not targetHRP then return end
+    if not isValidTarget(target) then return end
+
+    local targetHRP = target:FindFirstChild("HumanoidRootPart")
+    local myHRP = Character:FindFirstChild("HumanoidRootPart")
+    if not targetHRP or not myHRP then return end
 
     local backOffset = targetHRP.CFrame.LookVector * 3
     local followTime = 0.5
     local start = tick()
 
-    RunService.RenderStepped:Connect(function()
-        if tick() - start > followTime then return end
-        if targetHRP.Parent and Character and Character:FindFirstChild("HumanoidRootPart") then
-            local myHRP = Character:FindFirstChild("HumanoidRootPart")
-            myHRP.CFrame = CFrame.new(targetHRP.Position - backOffset, targetHRP.Position)
+    -- disconnect old connection if exists
+    if followConnection then
+        followConnection:Disconnect()
+        followConnection = nil
+    end
+
+    followConnection = RunService.RenderStepped:Connect(function()
+        if tick() - start > followTime then
+            followConnection:Disconnect()
+            followConnection = nil
+            return
+        end
+
+        if isValidTarget(target) and Character:FindFirstChild("HumanoidRootPart") then
+            myHRP.CFrame =
+                CFrame.new(targetHRP.Position - backOffset, targetHRP.Position)
         end
     end)
 end
 
--- Input listeners
+----------------------------------------------------
+-- INPUT
+----------------------------------------------------
+
 UIS.InputBegan:Connect(function(input, typing)
     if typing then return end
 
