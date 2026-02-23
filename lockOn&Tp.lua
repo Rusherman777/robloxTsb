@@ -202,7 +202,7 @@ UIS.InputBegan:Connect(function(input, typing)
             notify("Lock-On OFF")
         end
 
-    elseif input.KeyCode == Enum.KeyCode.R then
+    elseif input.KeyCode == Enum.KeyCode.T then
         local target = (lockOn and lockedTarget) or getClosestAliveTarget()
         if target then
             teleportAndFollow(target)
